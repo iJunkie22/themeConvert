@@ -4,11 +4,6 @@ import xml.etree.ElementTree as ET
 
 
 class GenericFormat(object):
-    def __init__(self):
-        pass
-
-
-class CSSProcessor(object):
     selectors = ['markup.tag.attribute.name',
                  'markup.tag.attribute.value',
                  'markup.comment',
@@ -26,6 +21,43 @@ class CSSProcessor(object):
                  'style.value.string',
                  'meta.important',
                  'style.value.keyword',
+                 'meta.link',
+                 'meta.default',
+                 'language.operator',
+                 'keyword.type',
+                 'language.function',
+                 'constant.numeric',
+                 'support']
+
+    attributes = ['fg_color',
+                  'bg_color',
+                  'bold',
+                  'italic',
+                  'underline']
+
+    def __init__(self):
+        pass
+
+
+class SSSProcessor(object):
+    selectors = ['markup.tag.attribute.name',
+                 'markup.tag.attribute.value',
+                 'markup.comment',
+                 'markup.constant.entity',
+                 'markup.inline.cdata',
+                 'markup.tag',
+                 'comment',
+                 'keyword',
+                 'string',
+                 'style.comment',
+                 'style.value.color.rgb-value',
+                 'style.at-rule',
+                 'style.value.numeric',
+                 'style.property.name',
+                 'style.value.string',
+                 'meta.important',
+                 'style.value.keyword',
+                 'meta.link',
                  'meta.default',
                  'language.operator',
                  'keyword.type',
@@ -34,6 +66,7 @@ class CSSProcessor(object):
                  'support']
     attributes = ['color',
                   'background-color']
+
     entry_pat = re.compile('(?P<selector>[a-zA-Z.]+)\s\{\n(?P<props>(.*;\n)+)\}', re.M)
     prop_pat = re.compile('(?:\s*)(?P<attr>[a-zA-Z-]+)\s*:\s*(?P<value>.*);\n', re.M)
 
@@ -43,19 +76,76 @@ class CSSProcessor(object):
     @classmethod
     def yield_entries(cls, text):
         for match in cls.entry_pat.finditer(text):
-            result_dict = dict()
+            prop_dict = dict()
             for prop_match in cls.prop_pat.finditer(match.groupdict()['props']):
-                result_dict[prop_match.groupdict()['attr']] = prop_match.groupdict()['value']
+                prop_dict[prop_match.groupdict()['attr']] = prop_match.groupdict()['value']
 
-            yield {'selector': match.groupdict()['selector'], 'props': result_dict}
+            yield cls.write_props({'selector': match.groupdict()['selector'], 'props': prop_dict})
 
     @classmethod
     def to_string(cls, style_dict):
+        style_dict = cls.read_props(style_dict)
         output_str = "%s {" % style_dict['selector']
         for k, v in style_dict['props'].items():
             output_str += "\n  %s:%s;" % (k, v)
         output_str += "\n}\n"
         return output_str
+
+    @classmethod
+    def read_props(cls, result_dict):
+        props_dict = result_dict['props']
+        new_selector = cls.selectors[GenericFormat.selectors.index(result_dict['selector'])]
+        new_prop_dict = dict()
+        for k, v in props_dict.items():
+            if k == 'fg_color':
+                # expect #a3a3a3 format
+                new_prop_dict['color'] = v
+                continue
+            if k == 'bg_color':
+                # expect #a3a3a3 format
+                new_prop_dict['background-color'] = v
+                continue
+            if k == 'bold':
+                # expect a boolean
+                new_prop_dict['font-weight'] = ('normal', 'bold')[int(v)]
+                continue
+            if k == 'italic':
+                # expect a boolean
+                new_prop_dict['font-style'] = ('normal', 'italic')[int(v)]
+                continue
+            if k == 'underline':
+                # expect a boolean
+                new_prop_dict['font-underline'] = ('none', 'underline')[int(v)]
+                continue
+        return {'selector': new_selector, 'props': new_prop_dict}
+
+    @classmethod
+    def write_props(cls, result_dict):
+        props_dict = result_dict['props']
+        new_selector = GenericFormat.selectors[cls.selectors.index(result_dict['selector'])]
+        new_prop_dict = dict()
+        for k, v in props_dict.items():
+            if k == 'color':
+                # expect #a3a3a3 format
+                new_prop_dict['fg_color'] = v
+                continue
+            if k == 'background-color':
+                # expect #a3a3a3 format
+                new_prop_dict['bg_color'] = v
+                continue
+            if k == 'font-weight':
+                # expect a boolean
+                new_prop_dict['bold'] = bool(('normal', 'bold').index(v))
+                continue
+            if k == 'font-style':
+                # expect a boolean
+                new_prop_dict['italic'] = bool(('normal', 'italic').index(v))
+                continue
+            if k == 'font-underline':
+                # expect a boolean
+                new_prop_dict['underline'] = bool(('none', 'underline').index(v))
+                continue
+        return {'selector': new_selector, 'props': new_prop_dict}
 
 
 class ICLSProcessor(object):
@@ -76,6 +166,7 @@ class ICLSProcessor(object):
                  'CSS.STRING',
                  'CSS.IMPORTANT',
                  'CSS.IDENT',
+                 'CSS.URL',
                  'TEXT',
                  'DEFAULT_OPERATION_SIGN',
                  'Type parameter',
@@ -84,10 +175,9 @@ class ICLSProcessor(object):
                  'DEFAULT_INSTANCE_FIELD']
     attributes = ['FOREGROUND',
                   'BACKGROUND',
-                  'FONT_TYPE']
-
-    def __init__(self):
-        pass
+                  'FONT_TYPE',
+                  'EFFECT_TYPE',
+                  'EFFECT_COLOR']
 
     @classmethod
     def yield_entries(cls, xml_str):
@@ -96,22 +186,122 @@ class ICLSProcessor(object):
         for child in attrs_root:
             if child.get('name') not in cls.selectors:
                 continue
-            child_name = CSSProcessor.selectors[cls.selectors.index(child.get('name'))]
+            child_name = child.get('name')
 
-            result_dict = dict()
+            prop_dict = dict()
             for sub_child in child.findall('./value/option'):
                 k, v = sub_child.get('name'), sub_child.get('value')
                 if k not in cls.attributes:
                     continue
-                if k == 'FOREGROUND' or k == 'BACKGROUND':
-                    k = CSSProcessor.attributes[cls.attributes.index(k)]
-                    v = '#' + v
 
-                if k == 'FONT_TYPE':
-                    k, v = [('font-weight', 'normal'),
-                            ('font-weight', 'bold'),
-                            ('font-style', 'italic')][int(v)]
+                prop_dict[k] = v
 
-                result_dict[k] = v
+            yield cls.write_props({'selector': child_name, 'props': prop_dict})
 
-            yield {'selector': child_name, 'props': result_dict}
+    @classmethod
+    def to_string(cls, style_dict):
+        return ET.tostring(cls.to_element(style_dict))
+
+    @classmethod
+    def to_element(cls, style_dict):
+        style_dict = cls.read_props(style_dict)
+        root = ET.Element('option', {'name': style_dict['selector']})
+        sub_root = ET.Element('value')
+
+        for k, v in style_dict['props'].items():
+            new_el = ET.Element('option', {'name': k, 'value': str(v)})
+            sub_root.append(new_el)
+
+        root.append(sub_root)
+        return root
+
+    @classmethod
+    def read_props(cls, result_dict):
+        props_dict = result_dict['props']
+        new_selector = cls.selectors[GenericFormat.selectors.index(result_dict['selector'])]
+        new_prop_dict = dict()
+
+        if 'bold' in props_dict.keys() or 'italic' in props_dict.keys():
+            new_prop_dict['FONT_TYPE'] = 0
+
+        for k, v in props_dict.items():
+            if k == 'fg_color':
+                # expect #a3a3a3 format
+                new_prop_dict['FOREGROUND'] = v.strip('#')
+                continue
+            if k == 'bg_color':
+                # expect #a3a3a3 format
+                new_prop_dict['BACKGROUND'] = v.strip('#')
+                continue
+            if k == 'bold' and v:
+                # expect a boolean
+                new_prop_dict['FONT_TYPE'] += 1
+                continue
+            if k == 'italic' and v:
+                # expect a boolean
+                new_prop_dict['FONT_TYPE'] += 2
+                continue
+            if k == 'underline':
+                # expect a boolean
+                new_prop_dict['font-underline'] = ('none', 'underline')[int(v)]
+                continue
+        return {'selector': new_selector, 'props': new_prop_dict}
+
+    @classmethod
+    def write_props(cls, result_dict):
+        props_dict = result_dict['props']
+        new_selector = GenericFormat.selectors[cls.selectors.index(result_dict['selector'])]
+        new_prop_dict = dict()
+        for k, v in props_dict.items():
+            if k == 'FOREGROUND':
+                # expect a3a3a3 format
+                new_prop_dict['fg_color'] = '#' + v
+                continue
+
+            if k == 'BACKGROUND':
+                # expect a3a3a3 format
+                new_prop_dict['bg_color'] = '#' + v
+                continue
+
+            if k == 'FONT_TYPE':
+                v = int(v)
+                # expect an int
+                if v == 0:
+                    new_prop_dict['bold'] = False
+                    continue
+
+                if v == 1 or v == 3:
+                    new_prop_dict['bold'] = True
+
+                if v == 2 or v == 3:
+                    new_prop_dict['italic'] = True
+
+            if k == 'EFFECT_TYPE':
+                v = int(v)
+                # expect an int
+                if v == 1 or v == 4:
+                    new_prop_dict['underline'] = False
+
+        return {'selector': new_selector, 'props': new_prop_dict}
+
+
+class ICLSFile(ICLSProcessor):
+    def __init__(self, name, parent_scheme='Default'):
+        # ONLY set parent_scheme if you are feeling lucky
+        self.root = ET.Element('scheme', {'name': name, 'version': "1", 'parent_scheme': parent_scheme})
+        self.root.append(ET.Element('colors'))
+        self.root.append(ET.Element('attributes'))
+
+    @property
+    def xml_str(self):
+        return ET.tostring(self.root).replace('><', '>\n<')
+
+    @property
+    def attribute_tree(self):
+        return self.root.find('attributes')
+
+    def insert_attribute_element(self, element):
+        self.attribute_tree.append(element)
+
+    def insert_attribute_dict(self, result_dict):
+        self.insert_attribute_element(self.to_element(result_dict))

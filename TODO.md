@@ -8,6 +8,7 @@ TODO
 - [ ] TextMate ***\*.tmTheme***
 
 ### Exporting
-- [ ] WebStorm, PyCharm, CLion ***\*.icls***
+- [x] WebStorm, PyCharm, CLion ***\*.icls***
 - [x] Coda2 ***\*.sss***
 - [ ] TextMate ***\*.tmTheme***
+
