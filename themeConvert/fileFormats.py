@@ -1,6 +1,8 @@
 __author__ = 'ethan'
 import re
 import xml.etree.ElementTree as ET
+import plistlib
+import cStringIO
 
 
 class GenericFormat(object):
@@ -27,7 +29,9 @@ class GenericFormat(object):
                  'keyword.type',
                  'language.function',
                  'constant.numeric',
-                 'support']
+                 'support',
+                 'constant.numeric.keyword',
+                 'keyword.control']
 
     attributes = ['fg_color',
                   'bg_color',
@@ -37,6 +41,49 @@ class GenericFormat(object):
 
     def __init__(self):
         pass
+
+
+class SmartFormat(object):
+    def __init__(self):
+        self._root = ET.Element('smart_format')
+        self._selectors = []
+
+    def add_selector(self, result_dict):
+        sub_root = ET.Element('props', {'selector': result_dict['selector']})
+
+        for k, v in result_dict['props'].items():
+            new_el = ET.Element('option', {'name': k, 'value': str(v)})
+            sub_root.append(new_el)
+
+        self._root.append(sub_root)
+        self._selectors.append(result_dict['selector'])
+
+    def findall(self, xpath):
+        for x in self._root.findall(xpath):
+            yield x
+
+    def query_selector(self, selector):
+        o_dict = dict()
+        for o_el in self._root.findall("./props[@selector='%s']/option" % selector):
+            o_dict[o_el.get('name')] = o_el.get('value')
+        return o_dict
+
+    def query_style(self, style_dict):
+        query_str = "./props"
+
+        for k, v in style_dict.items():
+            query_str = query_str + ("/option[@name='%s'][@value='%s'].." % (k, v))
+
+        for s in self.findall(query_str):
+            yield s.get('selector')
+
+    @property
+    def selectors(self):
+        return self._selectors
+
+    @property
+    def root_xml_string(self):
+        return ET.tostring(self._root)
 
 
 class SSSProcessor(object):
@@ -63,7 +110,9 @@ class SSSProcessor(object):
                  'keyword.type',
                  'language.function',
                  'constant.numeric',
-                 'support']
+                 'support',
+                 'constant.numeric.keyword',
+                 'keyword.control']
     attributes = ['color',
                   'background-color']
 
@@ -122,16 +171,20 @@ class SSSProcessor(object):
     @classmethod
     def write_props(cls, result_dict):
         props_dict = result_dict['props']
-        new_selector = GenericFormat.selectors[cls.selectors.index(result_dict['selector'])]
+        try:
+            new_selector = GenericFormat.selectors[cls.selectors.index(result_dict['selector'])]
+        except ValueError:
+            new_selector = result_dict['selector']
+
         new_prop_dict = dict()
         for k, v in props_dict.items():
             if k == 'color':
                 # expect #a3a3a3 format
-                new_prop_dict['fg_color'] = v
+                new_prop_dict['fg_color'] = v.upper()
                 continue
             if k == 'background-color':
                 # expect #a3a3a3 format
-                new_prop_dict['bg_color'] = v
+                new_prop_dict['bg_color'] = v.upper()
                 continue
             if k == 'font-weight':
                 # expect a boolean
@@ -172,7 +225,9 @@ class ICLSProcessor(object):
                  'Type parameter',
                  'DEFAULT_FUNCTION_DECLARATION',
                  'Number',
-                 'DEFAULT_INSTANCE_FIELD']
+                 'DEFAULT_INSTANCE_FIELD',
+                 'constant.numeric.keyword',
+                 'keyword.control']
     attributes = ['FOREGROUND',
                   'BACKGROUND',
                   'FONT_TYPE',
@@ -283,6 +338,85 @@ class ICLSProcessor(object):
                     new_prop_dict['underline'] = False
 
         return {'selector': new_selector, 'props': new_prop_dict}
+
+
+class TmThemeProcessor(object):
+    selectors = ['markup.tag.attribute.name',
+                 'markup.tag.attribute.value',
+                 'markup.comment',
+                 'markup.constant.entity',
+                 'markup.inline.cdata',
+                 'meta.tag',
+                 'comment',
+                 'keyword',
+                 'string',
+                 'style.comment',
+                 'style.value.color.rgb-value',
+                 'style.at-rule',
+                 'style.value.numeric',
+                 'style.property.name',
+                 'style.value.string',
+                 'meta.important',
+                 'style.value.keyword',
+                 'meta.link',
+                 'meta.default',
+                 'language.operator',
+                 'keyword.type',
+                 'language.function',
+                 'constant.numeric',
+                 'support',
+                 'constant.numeric.keyword',
+                 'keyword.control']
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def yield_entries(cls, plist_string):
+        pl_root = plistlib.readPlistFromString(plist_string)
+        for entry in dict(pl_root).get('settings'):
+            try:
+                for scope in entry['scope'].split(','):
+                    result_dict = cls.write_props({'selector': scope, 'props': entry['settings']})
+                    yield result_dict
+
+            except KeyError:
+                pass
+
+    @classmethod
+    def to_string(cls, style_dict):
+        return str()
+
+    @classmethod
+    def read_props(cls, result_dict):
+        return dict()
+
+    @classmethod
+    def write_props(cls, result_dict):
+        props_dict = result_dict['props']
+        new_prop_dict = dict()
+        for k, v in props_dict.items():
+            if k == 'foreground':
+                # expect #a3a3a3 format
+                new_prop_dict['fg_color'] = v
+                continue
+            if k == 'background':
+                # expect #a3a3a3 format
+                new_prop_dict['bg_color'] = v
+                continue
+            if k == 'font-weight':
+                # expect a boolean
+                new_prop_dict['bold'] = bool(('normal', 'bold').index(v))
+                continue
+            if k == 'font-style':
+                # expect a boolean
+                new_prop_dict['italic'] = bool(('normal', 'italic').index(v))
+                continue
+            if k == 'font-underline':
+                # expect a boolean
+                new_prop_dict['underline'] = bool(('none', 'underline').index(v))
+                continue
+        return {'selector': result_dict['selector'], 'props': new_prop_dict}
 
 
 class ICLSFile(ICLSProcessor):
