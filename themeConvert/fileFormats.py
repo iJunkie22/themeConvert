@@ -2,7 +2,7 @@ __author__ = 'ethan'
 import re
 import xml.etree.ElementTree as ET
 import plistlib
-import cStringIO
+import ast
 
 
 class GenericFormat(object):
@@ -65,17 +65,22 @@ class SmartFormat(object):
     def query_selector(self, selector):
         o_dict = dict()
         for o_el in self._root.findall("./props[@selector='%s']/option" % selector):
-            o_dict[o_el.get('name')] = o_el.get('value')
+            try:
+                o_dict[o_el.get('name')] = ast.literal_eval(o_el.get('value'))
+            except SyntaxError:
+                o_dict[o_el.get('name')] = o_el.get('value')
         return o_dict
 
     def query_style(self, style_dict):
-        query_str = "./props"
+        query_list = ['./props']
+        kc = len(style_dict.keys())
 
         for k, v in style_dict.items():
-            query_str = query_str + ("/option[@name='%s'][@value='%s'].." % (k, v))
+            query_list.append("/option[@name='%s'][@value='%s'].." % (k, v))
 
-        for s in self.findall(query_str):
-            yield s.get('selector')
+        for s in self.findall("".join(query_list)):
+            if kc > 0 or len(s) == 0:   # This keeps greedy matches away
+                yield s.get('selector')
 
     @property
     def selectors(self):
@@ -368,9 +373,6 @@ class TmThemeProcessor(object):
                  'constant.numeric.keyword',
                  'keyword.control']
 
-    def __init__(self):
-        pass
-
     @classmethod
     def yield_entries(cls, plist_string):
         pl_root = plistlib.readPlistFromString(plist_string)
@@ -381,7 +383,11 @@ class TmThemeProcessor(object):
                     yield result_dict
 
             except KeyError:
-                pass
+                try:
+                    result_dict = cls.write_props({'selector': 'settings', 'props': entry['settings']})
+                    yield result_dict
+                except KeyError:
+                    pass
 
     @classmethod
     def to_string(cls, style_dict):
@@ -389,7 +395,35 @@ class TmThemeProcessor(object):
 
     @classmethod
     def read_props(cls, result_dict):
-        return dict()
+        props_dict = result_dict['props']
+        try:
+            new_selector = cls.selectors[GenericFormat.selectors.index(result_dict['selector'])]
+        except ValueError:
+            new_selector = result_dict['selector']
+
+        new_prop_dict = dict()
+        for k, v in props_dict.items():
+            if k == 'fg_color':
+                # expect #a3a3a3 format
+                new_prop_dict['foreground'] = v
+                continue
+            if k == 'bg_color':
+                # expect #a3a3a3 format
+                new_prop_dict['background'] = v
+                continue
+            if k == 'bold' and v:
+                # expect a boolean
+                new_prop_dict['fontStyle'] = 'bold'
+                continue
+            if k == 'italic' and v:
+                # expect a boolean
+                new_prop_dict['fontStyle'] = 'italic'
+                continue
+            if k == 'underline' and v:
+                # expect a boolean
+                new_prop_dict['fontStyle'] = 'underline'
+                continue
+        return {'selector': new_selector, 'props': new_prop_dict}
 
     @classmethod
     def write_props(cls, result_dict):
@@ -404,19 +438,67 @@ class TmThemeProcessor(object):
                 # expect #a3a3a3 format
                 new_prop_dict['bg_color'] = v
                 continue
-            if k == 'font-weight':
-                # expect a boolean
-                new_prop_dict['bold'] = bool(('normal', 'bold').index(v))
+            if k == 'fontStyle' and v != '':
+                # expect a string
+                new_prop_dict[v] = True
                 continue
-            if k == 'font-style':
-                # expect a boolean
-                new_prop_dict['italic'] = bool(('normal', 'italic').index(v))
-                continue
-            if k == 'font-underline':
-                # expect a boolean
-                new_prop_dict['underline'] = bool(('none', 'underline').index(v))
-                continue
+
         return {'selector': result_dict['selector'], 'props': new_prop_dict}
+
+    @classmethod
+    def to_scope(cls, result_dict):
+        result_dict = cls.read_props(result_dict)
+        return {'name': result_dict['selector'],
+                'scope': result_dict['selector'],
+                'settings': result_dict['props']}
+
+
+class TmThemeFile(TmThemeProcessor, object):
+    def __init__(self):
+        self._root = {'author': '',
+                      'gutterSettings': {},
+                      'name': '',
+                      'semanticClass': '',
+                      'settings': [],
+                      'uuid': ''}
+
+    def insert_settings_dict(self, result_dict):
+        if result_dict['selector'] != 'settings':
+            self.settings.append(self.to_scope(result_dict))
+        else:
+            self.settings.append(self.read_props(result_dict))
+
+    def query_scope(self, scope):
+        for d in self.settings:
+            if d.get('scope') == scope:
+                yield d
+
+    def to_plist_str(self):
+        return plistlib.writePlistToString(self._root)
+
+    @property
+    def author(self):
+        return self._root['author']
+
+    @property
+    def gutter_settings(self):
+        return self._root['gutterSettings']
+
+    @property
+    def name(self):
+        return self._root['name']
+
+    @property
+    def semantic_class(self):
+        return self._root['semanticClass']
+
+    @property
+    def settings(self):
+        return self._root['settings']
+
+    @property
+    def uuid(self):
+        return self._root['uuid']
 
 
 class ICLSFile(ICLSProcessor):
@@ -426,13 +508,16 @@ class ICLSFile(ICLSProcessor):
         self.root.append(ET.Element('colors'))
         self.root.append(ET.Element('attributes'))
 
-    @property
-    def xml_str(self):
+    def to_xml_str(self):
         return ET.tostring(self.root).replace('><', '>\n<')
 
     @property
     def attribute_tree(self):
         return self.root.find('attributes')
+
+    @property
+    def colors_tree(self):
+        return self.root.find('colors')
 
     def insert_attribute_element(self, element):
         self.attribute_tree.append(element)
