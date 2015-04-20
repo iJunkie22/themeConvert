@@ -5,7 +5,7 @@ TODO
 ### Importing
 - [x] WebStorm, PyCharm, CLion ***\*.icls***
 - [x] Coda2 ***\*.sss***
-- [ ] TextMate ***\*.tmTheme***
+- [x] TextMate ***\*.tmTheme***
 
 ### Exporting
 - [x] WebStorm, PyCharm, CLion ***\*.icls***

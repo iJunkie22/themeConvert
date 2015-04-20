@@ -3,6 +3,7 @@ import re
 import xml.etree.ElementTree as ET
 import plistlib
 import ast
+import tmThemeDict
 
 
 class GenericFormat(object):
@@ -71,16 +72,21 @@ class SmartFormat(object):
                 o_dict[o_el.get('name')] = o_el.get('value')
         return o_dict
 
-    def query_style(self, style_dict):
+    def query_style(self, style_dict, strict=False):
         query_list = ['./props']
         kc = len(style_dict.keys())
 
         for k, v in style_dict.items():
             query_list.append("/option[@name='%s'][@value='%s'].." % (k, v))
 
-        for s in self.findall("".join(query_list)):
-            if kc > 0 or len(s) == 0:   # This keeps greedy matches away
-                yield s.get('selector')
+        if strict:
+            for s in self.findall("".join(query_list)):
+                if kc == len(s):
+                    yield s.get('selector')
+        else:
+            for s in self.findall("".join(query_list)):
+                if kc > 0 or len(s) == 0:   # This keeps greedy matches away
+                    yield s.get('selector')
 
     @property
     def selectors(self):
@@ -148,7 +154,7 @@ class SSSProcessor(object):
     @classmethod
     def read_props(cls, result_dict):
         props_dict = result_dict['props']
-        new_selector = cls.selectors[GenericFormat.selectors.index(result_dict['selector'])]
+        new_selector = cls._selector_to_own(result_dict['selector'])
         new_prop_dict = dict()
         for k, v in props_dict.items():
             if k == 'fg_color':
@@ -176,10 +182,7 @@ class SSSProcessor(object):
     @classmethod
     def write_props(cls, result_dict):
         props_dict = result_dict['props']
-        try:
-            new_selector = GenericFormat.selectors[cls.selectors.index(result_dict['selector'])]
-        except ValueError:
-            new_selector = result_dict['selector']
+        new_selector = cls._selector_to_generic(result_dict['selector'])
 
         new_prop_dict = dict()
         for k, v in props_dict.items():
@@ -204,6 +207,24 @@ class SSSProcessor(object):
                 new_prop_dict['underline'] = bool(('none', 'underline').index(v))
                 continue
         return {'selector': new_selector, 'props': new_prop_dict}
+
+    @classmethod
+    def _selector_to_generic(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
+
+    @classmethod
+    def _selector_to_own(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
 
 
 class ICLSProcessor(object):
@@ -278,7 +299,7 @@ class ICLSProcessor(object):
     @classmethod
     def read_props(cls, result_dict):
         props_dict = result_dict['props']
-        new_selector = cls.selectors[GenericFormat.selectors.index(result_dict['selector'])]
+        new_selector = cls._selector_to_own(result_dict['selector'])
         new_prop_dict = dict()
 
         if 'bold' in props_dict.keys() or 'italic' in props_dict.keys():
@@ -310,7 +331,7 @@ class ICLSProcessor(object):
     @classmethod
     def write_props(cls, result_dict):
         props_dict = result_dict['props']
-        new_selector = GenericFormat.selectors[cls.selectors.index(result_dict['selector'])]
+        new_selector = cls._selector_to_generic(result_dict['selector'])
         new_prop_dict = dict()
         for k, v in props_dict.items():
             if k == 'FOREGROUND':
@@ -344,6 +365,24 @@ class ICLSProcessor(object):
 
         return {'selector': new_selector, 'props': new_prop_dict}
 
+    @classmethod
+    def _selector_to_generic(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
+
+    @classmethod
+    def _selector_to_own(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
+
 
 class TmThemeProcessor(object):
     selectors = ['markup.tag.attribute.name',
@@ -374,18 +413,23 @@ class TmThemeProcessor(object):
                  'keyword.control']
 
     @classmethod
-    def yield_entries(cls, plist_string):
+    def yield_entries(cls, plist_string, make_generic=True):
         pl_root = plistlib.readPlistFromString(plist_string)
         for entry in dict(pl_root).get('settings'):
             try:
                 for scope in entry['scope'].split(','):
-                    result_dict = cls.write_props({'selector': scope, 'props': entry['settings']})
-                    yield result_dict
+                    if make_generic:
+                        for gen_scope in cls.generic_selectors(scope.strip()):
+                            yield cls.write_props({'selector': gen_scope, 'props': entry['settings']})
+                    else:
+                        yield cls.write_props({'selector': scope, 'props': entry['settings']})
 
             except KeyError:
                 try:
-                    result_dict = cls.write_props({'selector': 'settings', 'props': entry['settings']})
-                    yield result_dict
+                    gen_selector = 'settings'
+                    if make_generic:
+                        gen_selector = list(cls.generic_selectors(gen_selector))[0]
+                    yield cls.write_props({'selector': gen_selector, 'props': entry['settings']})
                 except KeyError:
                     pass
 
@@ -396,11 +440,7 @@ class TmThemeProcessor(object):
     @classmethod
     def read_props(cls, result_dict):
         props_dict = result_dict['props']
-        try:
-            new_selector = cls.selectors[GenericFormat.selectors.index(result_dict['selector'])]
-        except ValueError:
-            new_selector = result_dict['selector']
-
+        new_selector = cls._selector_to_own(result_dict['selector'])
         new_prop_dict = dict()
         for k, v in props_dict.items():
             if k == 'fg_color':
@@ -451,6 +491,36 @@ class TmThemeProcessor(object):
         return {'name': result_dict['selector'],
                 'scope': result_dict['selector'],
                 'settings': result_dict['props']}
+
+    @classmethod
+    def sss_selector(cls, selector):
+        s_l = tmThemeDict.s_d_merged[selector]
+        for i in s_l:
+            yield i
+
+    @classmethod
+    def generic_selectors(cls, selector):
+        s_l = tmThemeDict.s_d_merged[selector]
+        for i in s_l:
+            yield GenericFormat.selectors[SSSProcessor.selectors.index(i)]
+
+    @classmethod
+    def _selector_to_generic(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
+
+    @classmethod
+    def _selector_to_own(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
 
 
 class TmThemeFile(TmThemeProcessor, object):

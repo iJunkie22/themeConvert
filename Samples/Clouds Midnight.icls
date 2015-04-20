@@ -1,0 +1,126 @@
+<scheme name="Clouds Midnight" parent_scheme="Darcula" version="1">
+<colors />
+<attributes>
+<option name="TEXT">
+<value>
+<option name="FOREGROUND" value="929292" />
+<option name="BACKGROUND" value="191919" />
+</value>
+</option>
+<option name="DEFAULT_BLOCK_COMMENT">
+<value>
+<option name="FOREGROUND" value="3C403B" />
+</value>
+</option>
+<option name="HTML_COMMENT">
+<value>
+<option name="FOREGROUND" value="3C403B" />
+</value>
+</option>
+<option name="CSS.COMMENT">
+<value>
+<option name="FOREGROUND" value="3C403B" />
+</value>
+</option>
+<option name="HTML_ATTRIBUTE_VALUE">
+<value>
+<option name="FOREGROUND" value="5D90CD" />
+</value>
+</option>
+<option name="CSS.URL">
+<value>
+<option name="FOREGROUND" value="5D90CD" />
+</value>
+</option>
+<option name="DEFAULT_STRING">
+<value>
+<option name="FOREGROUND" value="5D90CD" />
+</value>
+</option>
+<option name="CSS.STRING">
+<value>
+<option name="FOREGROUND" value="5D90CD" />
+</value>
+</option>
+<option name="constant.numeric.keyword">
+<value>
+<option name="FOREGROUND" value="39946A" />
+</value>
+</option>
+<option name="keyword.control">
+<value>
+<option name="FOREGROUND" value="927C5D" />
+</value>
+</option>
+<option name="DEFAULT_KEYWORD">
+<value>
+<option name="FOREGROUND" value="927C5D" />
+</value>
+</option>
+<option name="Type parameter">
+<value>
+<option name="FOREGROUND" value="927C5D" />
+</value>
+</option>
+<option name="keyword.control">
+<value>
+<option name="FOREGROUND" value="927C5D" />
+</value>
+</option>
+<option name="keyword.control">
+<value>
+<option name="FOREGROUND" value="927C5D" />
+</value>
+</option>
+<option name="HTML_ATTRIBUTE_NAME">
+<value>
+<option name="FOREGROUND" value="A46763" />
+</value>
+</option>
+<option name="DEFAULT_KEYWORD">
+<value>
+<option name="FOREGROUND" value="E92E2E" />
+</value>
+</option>
+<option name="keyword.control">
+<value>
+<option name="FOREGROUND" value="E92E2E" />
+</value>
+</option>
+<option name="Type parameter">
+<value>
+<option name="FOREGROUND" value="E92E2E" />
+</value>
+</option>
+<option name="HTML_TAG">
+<value>
+<option name="FOREGROUND" value="606060" />
+</value>
+</option>
+<option name="HTML_TAG_NAME">
+<value>
+<option name="FOREGROUND" value="606060" />
+</value>
+</option>
+<option name="HTML_TAG">
+<value>
+<option name="FOREGROUND" value="606060" />
+</value>
+</option>
+<option name="HTML_TAG_NAME">
+<value>
+<option name="FOREGROUND" value="606060" />
+</value>
+</option>
+<option name="HTML_TAG">
+<value>
+<option name="FOREGROUND" value="606060" />
+</value>
+</option>
+<option name="HTML_TAG_NAME">
+<value>
+<option name="FOREGROUND" value="606060" />
+</value>
+</option>
+</attributes>
+</scheme>
