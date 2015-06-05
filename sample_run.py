@@ -27,6 +27,7 @@ sample_icls3 = os.path.join(samples_d, 'Clouds Midnight.icls')      # ./Samples/
 sample_sss = os.path.join(samples_d, 'FirefoxDE.sss')           # ./Samples/FirefoxDE.sss
 sample_tmtheme = os.path.join(samples_d, 'Clouds Midnight.tmTheme')  # ./Samples/Clouds Midnight.tmTheme
 sample_sss2 = os.path.join(samples_d, 'Clouds Midnight.sss')         # ./Samples/Clouds Midnight.sss
+sample_icls_db = os.path.join(samples_d, 'FireFox DE.db')        # ./Samples/FireFoxDE.db
 
 smart_format = TC.SmartFormat()
 smart_format2 = TC.SmartFormat()

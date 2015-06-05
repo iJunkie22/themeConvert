@@ -44,6 +44,28 @@ class GenericFormat(object):
         pass
 
 
+class MiscFormat(object):
+    selectors = []
+
+    @classmethod
+    def _selector_to_generic(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
+
+    @classmethod
+    def _selector_to_own(cls, selector):
+        new_selector = selector
+        try:
+            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
+        except ValueError:
+            pass
+        return new_selector
+
+
 class SmartFormat(object):
     def __init__(self):
         self._root = ET.Element('smart_format')
@@ -97,7 +119,7 @@ class SmartFormat(object):
         return ET.tostring(self._root)
 
 
-class SSSProcessor(object):
+class SSSProcessor(MiscFormat, object):
     selectors = ['markup.tag.attribute.name',
                  'markup.tag.attribute.value',
                  'markup.comment',
@@ -208,26 +230,8 @@ class SSSProcessor(object):
                 continue
         return {'selector': new_selector, 'props': new_prop_dict}
 
-    @classmethod
-    def _selector_to_generic(cls, selector):
-        new_selector = selector
-        try:
-            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
-        except ValueError:
-            pass
-        return new_selector
 
-    @classmethod
-    def _selector_to_own(cls, selector):
-        new_selector = selector
-        try:
-            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
-        except ValueError:
-            pass
-        return new_selector
-
-
-class ICLSProcessor(object):
+class ICLSProcessor(MiscFormat, object):
     selectors = ['HTML_ATTRIBUTE_NAME',
                  'HTML_ATTRIBUTE_VALUE',
                  'HTML_COMMENT',
@@ -365,26 +369,8 @@ class ICLSProcessor(object):
 
         return {'selector': new_selector, 'props': new_prop_dict}
 
-    @classmethod
-    def _selector_to_generic(cls, selector):
-        new_selector = selector
-        try:
-            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
-        except ValueError:
-            pass
-        return new_selector
 
-    @classmethod
-    def _selector_to_own(cls, selector):
-        new_selector = selector
-        try:
-            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
-        except ValueError:
-            pass
-        return new_selector
-
-
-class TmThemeProcessor(object):
+class TmThemeProcessor(MiscFormat, object):
     selectors = ['markup.tag.attribute.name',
                  'markup.tag.attribute.value',
                  'markup.comment',
@@ -503,24 +489,6 @@ class TmThemeProcessor(object):
         s_l = tmThemeDict.s_d_merged[selector]
         for i in s_l:
             yield GenericFormat.selectors[SSSProcessor.selectors.index(i)]
-
-    @classmethod
-    def _selector_to_generic(cls, selector):
-        new_selector = selector
-        try:
-            new_selector = GenericFormat.selectors[cls.selectors.index(selector)]
-        except ValueError:
-            pass
-        return new_selector
-
-    @classmethod
-    def _selector_to_own(cls, selector):
-        new_selector = selector
-        try:
-            new_selector = cls.selectors[GenericFormat.selectors.index(selector)]
-        except ValueError:
-            pass
-        return new_selector
 
 
 class TmThemeFile(TmThemeProcessor, object):

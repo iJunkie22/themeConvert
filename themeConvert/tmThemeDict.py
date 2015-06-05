@@ -148,18 +148,20 @@ s_d3 = {'comment': ['comment', 'markup.comment', 'style.comment'],
         'variable.other': [],
         'variable.parameter': []}
 
-s_d_merged = dict()
-both_keys = merge_lists(s_d.keys(), s_d2.keys())
-for m_k in both_keys:
-    v1 = []
-    v2 = []
-    if m_k in s_d.keys():
-        v1 = s_d[m_k]
-    if m_k in s_d2.keys():
-        v2 = s_d2[m_k]
-    n_v = merge_lists(v1, v2)
-    s_d_merged[m_k] = n_v
 
-for k in sorted(s_d_merged.keys()):
-    print "\'" + k + "\':", str(s_d_merged[k]) + ","
-#print s_d_merged
+if __name__ == '__main__':
+    s_d_merged = dict()
+    both_keys = merge_lists(s_d.keys(), s_d2.keys())
+    for m_k in both_keys:
+        v1 = []
+        v2 = []
+        if m_k in s_d.keys():
+            v1 = s_d[m_k]
+        if m_k in s_d2.keys():
+            v2 = s_d2[m_k]
+        n_v = merge_lists(v1, v2)
+        s_d_merged[m_k] = n_v
+
+    for k in sorted(s_d_merged.keys()):
+        print "\'" + k + "\':", str(s_d_merged[k]) + ","
+    #print s_d_merged
