@@ -149,7 +149,7 @@ s_d3 = {'comment': ['comment', 'markup.comment', 'style.comment'],
         'variable.parameter': []}
 
 
-if __name__ == '__main__':
+if __name__ == '__main__' or True:
     s_d_merged = dict()
     both_keys = merge_lists(s_d.keys(), s_d2.keys())
     for m_k in both_keys:

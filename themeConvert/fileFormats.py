@@ -152,9 +152,6 @@ class SSSProcessor(MiscFormat, object):
     entry_pat = re.compile('(?P<selector>[a-zA-Z.]+)\s\{\n(?P<props>(.*;\n)+)\}', re.M)
     prop_pat = re.compile('(?:\s*)(?P<attr>[a-zA-Z-]+)\s*:\s*(?P<value>.*);\n', re.M)
 
-    def __init__(self):
-        pass
-
     @classmethod
     def yield_entries(cls, text):
         for match in cls.entry_pat.finditer(text):
@@ -286,6 +283,10 @@ class ICLSProcessor(MiscFormat, object):
     @classmethod
     def to_string(cls, style_dict):
         return ET.tostring(cls.to_element(style_dict))
+
+    @classmethod
+    def n_v_dict(cls, args):
+        return dict((sc.get('name'), sc.get('value')) for sc in args)
 
     @classmethod
     def to_element(cls, style_dict):
