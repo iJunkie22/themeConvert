@@ -86,7 +86,7 @@ class SmartFormat(object):
             yield x
 
     def query_selector(self, selector):
-        o_dict = dict()
+        o_dict = {}
         for o_el in self._root.findall("./props[@selector='%s']/option" % selector):
             try:
                 o_dict[o_el.get('name')] = ast.literal_eval(o_el.get('value'))
@@ -155,7 +155,7 @@ class SSSProcessor(MiscFormat, object):
     @classmethod
     def yield_entries(cls, text):
         for match in cls.entry_pat.finditer(text):
-            prop_dict = dict()
+            prop_dict = {}
             for prop_match in cls.prop_pat.finditer(match.groupdict()['props']):
                 prop_dict[prop_match.groupdict()['attr']] = prop_match.groupdict()['value']
 
@@ -203,7 +203,7 @@ class SSSProcessor(MiscFormat, object):
         props_dict = result_dict['props']
         new_selector = cls._selector_to_generic(result_dict['selector'])
 
-        new_prop_dict = dict()
+        new_prop_dict = {}
         for k, v in props_dict.items():
             if k == 'color':
                 # expect #a3a3a3 format
@@ -264,12 +264,9 @@ class ICLSProcessor(MiscFormat, object):
     @classmethod
     def yield_entries(cls, xml_str):
         root = ET.fromstring(xml_str)
-        attrs_root = root.find('attributes')
-        for child in attrs_root:
+        for child in root.find('attributes'):
             if child.get('name') not in cls.selectors:
                 continue
-            child_name = child.get('name')
-
             prop_dict = dict()
             for sub_child in child.findall('./value/option'):
                 k, v = sub_child.get('name'), sub_child.get('value')
@@ -278,7 +275,7 @@ class ICLSProcessor(MiscFormat, object):
 
                 prop_dict[k] = v
 
-            yield cls.write_props({'selector': child_name, 'props': prop_dict})
+            yield cls.write_props({'selector': (child.get('name')), 'props': prop_dict})
 
     @classmethod
     def to_string(cls, style_dict):
@@ -337,7 +334,7 @@ class ICLSProcessor(MiscFormat, object):
     def write_props(cls, result_dict):
         props_dict = result_dict['props']
         new_selector = cls._selector_to_generic(result_dict['selector'])
-        new_prop_dict = dict()
+        new_prop_dict = {}
         for k, v in props_dict.items():
             if k == 'FOREGROUND':
                 # expect a3a3a3 format

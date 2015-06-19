@@ -32,6 +32,6 @@ sss_buf = buffer_file(sample_sss)
 test_db2 = themeConvert.databaser.SSSdb(sample_icls_db)
 test_db2.yield_entries(sss_buf)
 
-for line in test_db2.yield_table_dicts():
+for line in test_db2.yield_table_dicts('theme'):
     print line
 

@@ -150,18 +150,8 @@ s_d3 = {'comment': ['comment', 'markup.comment', 'style.comment'],
 
 
 if __name__ == '__main__' or True:
-    s_d_merged = dict()
-    both_keys = merge_lists(s_d.keys(), s_d2.keys())
-    for m_k in both_keys:
-        v1 = []
-        v2 = []
-        if m_k in s_d.keys():
-            v1 = s_d[m_k]
-        if m_k in s_d2.keys():
-            v2 = s_d2[m_k]
-        n_v = merge_lists(v1, v2)
-        s_d_merged[m_k] = n_v
-
-    for k in sorted(s_d_merged.keys()):
-        print "\'" + k + "\':", str(s_d_merged[k]) + ","
-    #print s_d_merged
+    s_d_merged = {}
+    k_view1 = s_d.viewkeys()
+    k_view2 = s_d2.viewkeys()
+    for m_k in k_view1 | k_view2:
+        s_d_merged[m_k] = list(set(s_d.get(m_k, [])) | set(s_d2.get(m_k, [])))
