@@ -332,6 +332,22 @@ class ICLSProcessor(MiscFormat, object):
 
     @classmethod
     def write_props(cls, result_dict):
+        """
+        Blah
+
+        EFFECT_TYPES:
+            1: Underscore
+            2: Underwaved
+            3: Strike-out
+            4: Bold Underscored
+            5: Dotted-Line
+
+        FONT_TYPES:
+            1: Bold
+            2: Italic
+            3: Bold and Italic
+
+        """
         props_dict = result_dict['props']
         new_selector = cls._selector_to_generic(result_dict['selector'])
         new_prop_dict = {}
